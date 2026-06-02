@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Scenario Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Text:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Red Hat Text', -apple-system, sans-serif;
+    background: #0d1117;
+    min-height: 100vh;
+    padding: 32px 28px;
+    color: #fff;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    bottom: -200px; right: -200px;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(180,40,40,0.18) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    top: -150px; left: -150px;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,60,140,0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .header-left h1 { font-size: 22px; font-weight: 300; color: rgba(255,255,255,0.95); letter-spacing: 0.01em; margin-bottom: 4px; }
+  .header-left h1 strong { font-weight: 700; color: #E5353B; }
+  .header-left .subtitle { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
+  .header-left .context-line { font-size: 11px; color: rgba(255,255,255,0.25); font-style: italic; }
+  .scenarios { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; margin-top: 20px; }
+  .scenario-btn {
+    font-family: 'Red Hat Text', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 8px 20px; border-radius: 20px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.5);
+    cursor: pointer; transition: all 0.18s; letter-spacing: 0.02em;
+  }
+  .scenario-btn:hover { border-color: rgba(229,53,59,0.5); color: #E5353B; background: rgba(229,53,59,0.06); }
+  .scenario-btn.active { background: #E5353B; color: #fff; border-color: #E5353B; box-shadow: 0 0 16px rgba(229,53,59,0.3); }
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  .metric { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px 20px; transition: border-color 0.2s; }
+  .metric:hover { border-color: rgba(255,255,255,0.14); }
+  .metric-label { font-size: 10px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+  .metric-value { font-size: 26px; font-weight: 300; color: #fff; letter-spacing: -0.5px; }
+  .metric-delta { font-size: 11px; margin-top: 6px; color: rgba(255,255,255,0.3); }
+  .delta-pos { color: #4ade80; }
+  .delta-neg { color: #E5353B; }
+  .delta-warn { color: #FAC775; }
+  .nrr-good { color: #4ade80; }
+  .nrr-warn { color: #FAC775; }
+  .nrr-bad { color: #E5353B; }
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; }
+  .panel-head { padding: 13px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); letter-spacing: 0.07em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+  .panel-head span { font-size: 11px; font-weight: 400; color: rgba(255,255,255,0.25); text-transform: none; letter-spacing: 0; }
+  .panel-body { padding: 18px 20px; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-label { font-size: 12px; color: rgba(255,255,255,0.55); min-width: 155px; line-height: 1.5; }
+  .slider-label small { font-size: 10px; color: rgba(255,255,255,0.25); display: block; margin-top: 1px; }
+  input[type=range] { flex: 1; -webkit-appearance: none; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: #E5353B; cursor: pointer; border: 2px solid rgba(255,255,255,0.9); box-shadow: 0 0 8px rgba(229,53,59,0.4); }
+  input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: #E5353B; cursor: pointer; border: 2px solid rgba(255,255,255,0.9); }
+  .slider-val { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); min-width: 68px; text-align: right; }
+  .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 14px 0; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-row:last-child { margin-bottom: 0; }
+  .bar-label { font-size: 11px; color: rgba(255,255,255,0.4); min-width: 110px; }
+  .bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .bar-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.8); min-width: 80px; text-align: right; }
+  .insight { background: rgba(229,53,59,0.08); border-left: 3px solid #E5353B; border-radius: 0 10px 10px 0; padding: 13px 16px; margin-bottom: 18px; }
+  .insight p { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.65; }
+  .section-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 12px; }
+  .proj-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .proj-month { font-size: 10px; color: rgba(255,255,255,0.28); min-width: 32px; }
+  .proj-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .proj-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+  .proj-val { font-size: 11px; color: rgba(255,255,255,0.6); min-width: 80px; text-align: right; font-weight: 500; }
+  .cap-warning { background: rgba(229,53,59,0.08); border-left: 3px solid #E5353B; border-radius: 0 10px 10px 0; padding: 11px 14px; margin-top: 14px; }
+  .cap-warning p { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.55; }
+  .footer-line { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+  .footer-line p { font-size: 11px; color: rgba(255,255,255,0.18); }
+  .footer-accent { width: 40px; height: 2px; background: linear-gradient(90deg, #E5353B, #ff6b6b); border-radius: 1px; }
+  @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } .main-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-left">
+      <h1>Business <strong>scenario model</strong></h1>
+      <div class="subtitle">Adjust variables to model revenue and growth impact in real time</div>
+      <div class="context-line">B2B SaaS · Illustrative baseline · NRR-weighted scenario model</div>
+    </div>
+  </div>
+
+  <div class="scenarios">
+    <button class="scenario-btn active" onclick="loadScenario('current', this)">Current state</button>
+    <button class="scenario-btn" onclick="loadScenario('growth', this)">Growth sprint</button>
+    <button class="scenario-btn" onclick="loadScenario('churn', this)">Churn risk</button>
+    <button class="scenario-btn" onclick="loadScenario('upsell', this)">Upsell push</button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">MRR</div>
+      <div class="metric-value" id="m-mrr">£0</div>
+      <div class="metric-delta" id="d-mrr">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">ARR</div>
+      <div class="metric-value" id="m-arr">£0</div>
+      <div class="metric-delta" style="color:rgba(255,255,255,0.2);font-size:10px;">MRR x 12 · monthly contracts</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">NRR</div>
+      <div class="metric-value" id="m-nrr">—</div>
+      <div class="metric-delta" id="d-nrr">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Companies</div>
+      <div class="metric-value" id="m-companies">0</div>
+      <div class="metric-delta" id="d-companies">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total Licences</div>
+      <div class="metric-value" id="m-licences">0</div>
+      <div class="metric-delta" id="d-licences">—</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div>
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-head">Revenue inputs</div>
+        <div class="panel-body">
+          <div class="slider-row">
+            <div class="slider-label">New business / month<small>£ new contracts signed</small></div>
+            <input type="range" id="s-new" min="0" max="80000" step="1000" value="0" oninput="calc()">
+            <div class="slider-val" id="v-new">£0</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label">Upsell / month<small>£ expansion from existing clients</small></div>
+            <input type="range" id="s-upsell" min="0" max="40000" step="500" value="0" oninput="calc()">
+            <div class="slider-val" id="v-upsell">£0</div>
+          </div>
+          <div class="divider"></div>
+          <div class="slider-row">
+            <div class="slider-label">Contractions / month<small>£ licence reductions or downgrades</small></div>
+            <input type="range" id="s-contractions" min="0" max="20000" step="500" value="0" oninput="calc()">
+            <div class="slider-val" id="v-contractions">£0</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label">Leavers / month<small>£ full cancellations</small></div>
+            <input type="range" id="s-leavers" min="0" max="40000" step="500" value="0" oninput="calc()">
+            <div class="slider-val" id="v-leavers">£0</div>
+          </div>
+          <div class="divider"></div>
+          <div class="slider-row">
+            <div class="slider-label">Renewals at risk<small>% of renewal book in dispute</small></div>
+            <input type="range" id="s-risk" min="0" max="25" step="1" value="0" oninput="calc()">
+            <div class="slider-val" id="v-risk">0%</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">Growth inputs</div>
+        <div class="panel-body">
+          <div class="slider-row">
+            <div class="slider-label">New companies / month<small>net new logos</small></div>
+            <input type="range" id="s-newco" min="0" max="60" step="1" value="0" oninput="calc()">
+            <div class="slider-val" id="v-newco">0</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label">Licences per new company<small>avg seats at signing</small></div>
+            <input type="range" id="s-lic" min="1" max="20" step="1" value="2" oninput="calc()">
+            <div class="slider-val" id="v-lic">2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-head">What this means</div>
+        <div class="panel-body">
+          <div class="insight"><p id="insight-text">Loading scenario...</p></div>
+          <div class="section-label">Revenue movement</div>
+          <div class="bar-row">
+            <div class="bar-label">New business</div>
+            <div class="bar-track"><div class="bar-fill" id="bar-new" style="background:#4ade80;width:0%"></div></div>
+            <div class="bar-val" id="val-new">£0 / mo</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Upsell</div>
+            <div class="bar-track"><div class="bar-fill" id="bar-upsell" style="background:#86efac;width:0%"></div></div>
+            <div class="bar-val" id="val-upsell">£0 / mo</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Contractions</div>
+            <div class="bar-track"><div class="bar-fill" id="bar-contractions" style="background:#FAC775;width:0%"></div></div>
+            <div class="bar-val" id="val-contractions">£0 / mo</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Leavers</div>
+            <div class="bar-track"><div class="bar-fill" id="bar-leavers" style="background:#E5353B;width:0%"></div></div>
+            <div class="bar-val" id="val-leavers">£0 / mo</div>
+          </div>
+          <div id="cap-warning" class="cap-warning" style="display:none;">
+            <p id="cap-warning-text"></p>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">12-month MRR projection <span>net of leavers and contractions</span></div>
+        <div class="panel-body" id="proj-panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-line">
+    <p>Business scenario model · Built as part of a 12-month ops transformation framework</p>
+    <div class="footer-accent"></div>
+  </div>
+</div>
+
+<script>
+  const BASE = { mrr: 287500, companies: 920, licences: 1840 };
+  const scenarios = {
+    current: { new: 0,     upsell: 0,     contractions: 0,    leavers: 0,     risk: 0,  newco: 0,  lic: 2 },
+    growth:  { new: 35000, upsell: 8000,  contractions: 2000, leavers: 4000,  risk: 2,  newco: 12, lic: 2 },
+    churn:   { new: 8000,  upsell: 1500,  contractions: 8000, leavers: 22000, risk: 14, newco: 3,  lic: 2 },
+    upsell:  { new: 12000, upsell: 20000, contractions: 1500, leavers: 2500,  risk: 1,  newco: 5,  lic: 3 }
+  };
+
+  function loadScenario(key, btn) {
+    const s = scenarios[key];
+    document.getElementById('s-new').value          = s.new;
+    document.getElementById('s-upsell').value       = s.upsell;
+    document.getElementById('s-contractions').value = s.contractions;
+    document.getElementById('s-leavers').value      = s.leavers;
+    document.getElementById('s-risk').value         = s.risk;
+    document.getElementById('s-newco').value        = s.newco;
+    document.getElementById('s-lic').value          = s.lic;
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    calc();
+  }
+
+  function fmtGBP(n) { return '£' + Math.round(Math.abs(n)).toLocaleString('en-GB'); }
+  function fmtNum(n) { return Math.round(n).toLocaleString('en-GB'); }
+
+  function calc() {
+    const newBiz       = +document.getElementById('s-new').value;
+    const upsell       = +document.getElementById('s-upsell').value;
+    const contractions = +document.getElementById('s-contractions').value;
+    const leavers      = +document.getElementById('s-leavers').value;
+    const risk         = +document.getElementById('s-risk').value / 100;
+    const newco        = +document.getElementById('s-newco').value;
+    const lic          = +document.getElementById('s-lic').value;
+
+    document.getElementById('v-new').textContent          = fmtGBP(newBiz);
+    document.getElementById('v-upsell').textContent       = fmtGBP(upsell);
+    document.getElementById('v-contractions').textContent = fmtGBP(contractions);
+    document.getElementById('v-leavers').textContent      = fmtGBP(leavers);
+    document.getElementById('v-risk').textContent         = (risk * 100) + '%';
+    document.getElementById('v-newco').textContent        = newco;
+    document.getElementById('v-lic').textContent          = lic;
+
+    const nrr        = ((BASE.mrr + upsell - contractions - leavers) / BASE.mrr) * 100;
+    const nrrRounded = Math.round(nrr * 10) / 10;
+    const netMRR     = BASE.mrr + newBiz + upsell - contractions - leavers;
+    const projComp   = BASE.companies + newco;
+    const projLic    = BASE.licences + (newco * lic);
+    const atRisk     = BASE.mrr * risk;
+    const mrrDelta   = netMRR - BASE.mrr;
+
+    document.getElementById('m-mrr').textContent       = fmtGBP(netMRR);
+    document.getElementById('m-arr').textContent       = fmtGBP(netMRR * 12);
+    document.getElementById('m-companies').textContent = fmtNum(projComp);
+    document.getElementById('m-licences').textContent  = fmtNum(projLic);
+
+    const nrrEl      = document.getElementById('m-nrr');
+    const nrrDeltaEl = document.getElementById('d-nrr');
+    nrrEl.textContent = nrrRounded + '%';
+    if (nrrRounded >= 100) {
+      nrrEl.className = 'metric-value nrr-good';
+      nrrDeltaEl.innerHTML = '<span class="delta-pos">Existing base growing</span>';
+    } else if (nrrRounded >= 90) {
+      nrrEl.className = 'metric-value nrr-warn';
+      nrrDeltaEl.innerHTML = '<span class="delta-warn">Monitor contractions</span>';
+    } else {
+      nrrEl.className = 'metric-value nrr-bad';
+      nrrDeltaEl.innerHTML = '<span class="delta-neg">Revenue base shrinking</span>';
+    }
+
+    document.getElementById('d-mrr').innerHTML = mrrDelta === 0
+      ? '<span style="color:rgba(255,255,255,0.25)">baseline · ' + fmtGBP(BASE.mrr) + '</span>'
+      : mrrDelta > 0
+        ? '<span class="delta-pos">↑ ' + fmtGBP(mrrDelta) + ' vs baseline</span>'
+        : '<span class="delta-neg">↓ ' + fmtGBP(Math.abs(mrrDelta)) + ' vs baseline</span>';
+
+    document.getElementById('d-companies').innerHTML = newco === 0
+      ? '<span style="color:rgba(255,255,255,0.25)">baseline · ' + fmtNum(BASE.companies) + '</span>'
+      : '<span class="delta-pos">↑ ' + newco + ' new this month</span>';
+
+    document.getElementById('d-licences').innerHTML = newco === 0
+      ? '<span style="color:rgba(255,255,255,0.25)">baseline · ' + fmtNum(BASE.licences) + '</span>'
+      : '<span class="delta-pos">↑ ' + fmtNum(newco * lic) + ' new seats</span>';
+
+    const maxBar = Math.max(newBiz, upsell, contractions, leavers, 1);
+    document.getElementById('bar-new').style.width          = Math.round((newBiz / maxBar) * 100) + '%';
+    document.getElementById('bar-upsell').style.width       = Math.round((upsell / maxBar) * 100) + '%';
+    document.getElementById('bar-contractions').style.width = Math.round((contractions / maxBar) * 100) + '%';
+    document.getElementById('bar-leavers').style.width      = Math.round((leavers / maxBar) * 100) + '%';
+    document.getElementById('val-new').textContent          = fmtGBP(newBiz) + ' / mo';
+    document.getElementById('val-upsell').textContent       = fmtGBP(upsell) + ' / mo';
+    document.getElementById('val-contractions').textContent = fmtGBP(contractions) + ' / mo';
+    document.getElementById('val-leavers').textContent      = fmtGBP(leavers) + ' / mo';
+
+    const capWarning = document.getElementById('cap-warning');
+    const capText    = document.getElementById('cap-warning-text');
+    if (risk > 0.05) {
+      capWarning.style.display = 'block';
+      capText.textContent = Math.round(risk * 100) + '% of renewals at risk is putting ' + fmtGBP(atRisk) + ' of MRR in dispute. A formal renewal confirmation process would close this gap before it compounds.';
+    } else {
+      capWarning.style.display = 'none';
+    }
+
+    let insight = '';
+    if (newBiz === 0 && upsell === 0 && contractions === 0 && leavers === 0 && newco === 0 && risk === 0) {
+      insight = 'Current baseline. ' + fmtNum(BASE.companies) + ' companies, ' + fmtGBP(BASE.mrr) + ' MRR, ' + fmtGBP(BASE.mrr * 12) + ' ARR, ' + fmtNum(BASE.licences) + ' licences. NRR at 100%. Use the sliders or select a scenario to model what changes.';
+    } else if (nrrRounded >= 105) {
+      insight = 'NRR at ' + nrrRounded + '%. The existing base is growing faster than it churns. This is the most capital-efficient growth lever available — more revenue without a single new logo.';
+    } else if (contractions > leavers && nrrRounded < 100) {
+      insight = 'Contractions are the bigger problem here, not full cancellations. ' + fmtGBP(contractions) + ' in monthly downgrades is dragging NRR to ' + nrrRounded + '%. These clients are still there — they just need a reason to stay at full value.';
+    } else if (leavers > newBiz + upsell) {
+      insight = 'Leavers are outpacing new business and upsell combined by ' + fmtGBP(leavers - newBiz - upsell) + ' this month. MRR is contracting. Stabilising the existing base before pushing growth harder is the higher-ROI move.';
+    } else if (risk > 0.08) {
+      insight = 'With ' + Math.round(risk * 100) + '% of renewals at risk, up to ' + fmtGBP(atRisk) + ' of MRR is in dispute each month. A structured renewal confirmation process would eliminate most of this exposure.';
+    } else if (newco > 10) {
+      insight = 'Adding ' + newco + ' new companies per month means ' + fmtNum(newco * lic) + ' new licences and ' + fmtGBP(newBiz) + ' in new MRR. The question is whether onboarding and billing can absorb that pace without creating the problems ops is here to prevent.';
+    } else if (mrrDelta > 0) {
+      insight = 'Net MRR is up ' + fmtGBP(mrrDelta) + ' on baseline. NRR at ' + nrrRounded + '%. The ops focus at this stage is making sure the systems behind that growth hold up as it scales.';
+    } else {
+      insight = 'Net MRR is ' + fmtGBP(Math.abs(mrrDelta)) + ' ' + (mrrDelta < 0 ? 'below' : 'above') + ' baseline. NRR: ' + nrrRounded + '%. Adjust the inputs to model different combinations of growth, expansion and churn.';
+    }
+    document.getElementById('insight-text').textContent = insight;
+
+    let runningMRR = BASE.mrr;
+    const months = ['Now','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12'];
+    const projections = months.map((m, i) => {
+      if (i > 0) runningMRR = Math.max(runningMRR + newBiz + upsell - contractions - leavers, 0);
+      return runningMRR;
+    });
+    const maxProj = Math.max(...projections, 1);
+    let html = '';
+    projections.forEach((val, i) => {
+      const pct   = Math.round((val / maxProj) * 100);
+      const style = i === 0
+        ? 'background:rgba(255,255,255,0.15);width:' + pct + '%'
+        : val >= BASE.mrr
+          ? 'background:linear-gradient(90deg,#4ade80,#86efac);width:' + pct + '%'
+          : 'background:linear-gradient(90deg,#E5353B,#c0302e);width:' + pct + '%';
+      html += '<div class="proj-row"><div class="proj-month">' + months[i] + '</div><div class="proj-track"><div class="proj-fill" style="' + style + '"></div></div><div class="proj-val">' + fmtGBP(val) + '</div></div>';
+    });
+    document.getElementById('proj-panel').innerHTML = html;
+  }
+
+  loadScenario('current', document.querySelector('.scenario-btn.active'));
+</script>
+</body>
+</html>
