@@ -4,47 +4,93 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Customer Financial Health</title>
+<meta property="og:title" content="Customer Financial Health Score">
+<meta property="og:description" content="Segment-weighted scoring model. Five signals, RAG rating per customer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Text:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
-.dash{background:linear-gradient(145deg,#0f1f3d 0%,#162544 60%,#1a2f52 100%);border-radius:12px;padding:1.5rem;width:100%;max-width:780px;}
-.dash-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:0.5px solid rgba(255,255,255,0.15);}
-.dash-title{font-size:16px;font-weight:500;color:#e8eef8;}
-.dash-sub{font-size:12px;color:rgba(255,255,255,0.6);margin-top:3px;}
+body{
+  font-family:'Red Hat Text',-apple-system,sans-serif;
+  background:#0d1117;
+  min-height:100vh;
+  display:flex;justify-content:center;
+  padding:2rem;
+  color:#fff;
+  position:relative;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;bottom:-200px;right:-200px;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(180,40,40,0.18) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;top:-150px;left:-150px;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(100,60,140,0.12) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.dash{
+  position:relative;z-index:1;
+  width:100%;max-width:780px;
+}
+.dash-head{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:1.5rem;padding-bottom:1rem;
+  border-bottom:0.5px solid rgba(255,255,255,0.15);
+}
+.dash-title{font-size:22px;font-weight:300;color:rgba(255,255,255,0.95);}
+.dash-title strong{font-weight:700;color:#E5353B;}
+.dash-sub{font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;}
-.stat{background:rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;border:0.5px solid rgba(255,255,255,0.12);}
+.stat{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;}
 .stat-n{font-size:22px;font-weight:500;}
-.stat-l{font-size:11px;margin-top:2px;color:rgba(255,255,255,0.6);}
+.stat-l{font-size:11px;margin-top:4px;color:rgba(255,255,255,0.5);}
 .red-c{color:#f07070;}
 .amber-c{color:#f0b755;}
 .green-c{color:#6dbf67;}
-.row{display:grid;grid-template-columns:180px 1fr 80px;align-items:center;gap:16px;padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.09);}
-.row:last-child{border-bottom:none;}
+.col-headers{
+  display:grid;grid-template-columns:180px 1fr 80px;gap:16px;
+  padding-bottom:8px;border-bottom:0.5px solid rgba(255,255,255,0.12);margin-bottom:4px;
+}
+.col-h{font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.06em;}
+.row{
+  display:grid;grid-template-columns:180px 1fr 80px;
+  align-items:center;gap:16px;padding:14px 0;
+  border-bottom:0.5px solid rgba(255,255,255,0.07);
+}
+.row:last-of-type{border-bottom:none;}
 .company{font-size:13px;font-weight:500;color:#e8eef8;}
-.seg{font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;}
+.seg{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;}
 .signals{display:flex;flex-direction:column;gap:6px;}
 .sig-row{display:flex;align-items:center;gap:8px;}
-.sig-label{font-size:10px;color:rgba(255,255,255,0.55);width:100px;flex-shrink:0;}
-.sig-bar-bg{flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;}
+.sig-label{font-size:10px;color:rgba(255,255,255,0.45);width:100px;flex-shrink:0;}
+.sig-bar-bg{flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
 .sig-bar{height:100%;border-radius:2px;}
 .gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .gauge-label{font-size:10px;font-weight:500;}
-.col-headers{display:grid;grid-template-columns:180px 1fr 80px;gap:16px;padding-bottom:8px;border-bottom:0.5px solid rgba(255,255,255,0.15);margin-bottom:4px;}
-.col-h{font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.05em;}
-.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:500;}
-.badge-red{background:rgba(240,112,112,0.18);color:#f07070;}
-.badge-green{background:rgba(109,191,103,0.18);color:#6dbf67;}
-.footer{font-size:10px;color:rgba(255,255,255,0.45);margin-top:1rem;padding-top:0.75rem;border-top:0.5px solid rgba(255,255,255,0.1);}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:500;}
+.badge-red{background:rgba(240,112,112,0.15);color:#f07070;}
+.badge-green{background:rgba(109,191,103,0.15);color:#6dbf67;}
+.footer{
+  font-size:10px;color:rgba(255,255,255,0.25);
+  margin-top:1rem;padding-top:0.75rem;
+  border-top:0.5px solid rgba(255,255,255,0.08);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.footer-accent{width:40px;height:2px;background:linear-gradient(90deg,#E5353B,#ff6b6b);border-radius:1px;}
 </style>
 </head>
 <body>
 <div class="dash">
   <div class="dash-head">
     <div>
-      <p class="dash-title">Customer financial health</p>
+      <p class="dash-title">Customer <strong>financial health</strong></p>
       <p class="dash-sub">Segment-weighted · 5 signals · 27 May 2026</p>
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;">
       <span class="badge badge-red">3 at risk</span>
       <span class="badge badge-green">4 healthy</span>
     </div>
@@ -72,7 +118,7 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#f07070" stroke-width="6" stroke-dasharray="5 158" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="13" font-weight="500" fill="#f07070">8</text>
       </svg>
@@ -90,7 +136,7 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#f07070" stroke-width="6" stroke-dasharray="23 141" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="500" fill="#f07070">36</text>
       </svg>
@@ -108,7 +154,7 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#f07070" stroke-width="6" stroke-dasharray="26 138" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="500" fill="#f07070">41</text>
       </svg>
@@ -126,7 +172,7 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#6dbf67" stroke-width="6" stroke-dasharray="53 111" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="500" fill="#6dbf67">85</text>
       </svg>
@@ -144,7 +190,7 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#6dbf67" stroke-width="6" stroke-dasharray="57 107" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="500" fill="#6dbf67">91</text>
       </svg>
@@ -156,13 +202,13 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     <div><p class="company">Aldi Properties</p><p class="seg">Enterprise</p></div>
     <div class="signals">
       <div class="sig-row"><span class="sig-label">Invoice ageing</span><div class="sig-bar-bg"><div class="sig-bar" style="width:80%;background:#6dbf67;"></div></div></div>
-      <div class="sig-row"><span class="sig-label">Login activity</span><div class="sig-bar-bg"><div class="sig-bar" style="width:50%;background:#f0b755;"></div></div></div>
+      <div class="sig-row"><span class="sig-label">Login activity</span><div class="sig-bar-bg"><div class="sig-bar-bg"><div class="sig-bar" style="width:50%;background:#f0b755;"></div></div></div>
       <div class="sig-row"><span class="sig-label">Renewal proximity</span><div class="sig-bar-bg"><div class="sig-bar" style="width:100%;background:#6dbf67;"></div></div></div>
       <div class="sig-row"><span class="sig-label">Payment method</span><div class="sig-bar-bg"><div class="sig-bar" style="width:100%;background:#6dbf67;"></div></div></div>
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#6dbf67" stroke-width="6" stroke-dasharray="58 106" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="500" fill="#6dbf67">92</text>
       </svg>
@@ -180,7 +226,7 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
     <div class="gauge-wrap">
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
         <circle cx="32" cy="32" r="26" fill="none" stroke="#6dbf67" stroke-width="6" stroke-dasharray="58 106" stroke-dashoffset="-41" stroke-linecap="round"/>
         <text x="32" y="36" text-anchor="middle" font-size="12" font-weight="500" fill="#6dbf67">93</text>
       </svg>
@@ -188,7 +234,10 @@ body{background:#0a1628;display:flex;justify-content:center;padding:2rem;font-fa
     </div>
   </div>
 
-  <p class="footer">Enterprise tolerance applied · Taylor and Wimpey flagged for manual review before escalation</p>
+  <div class="footer">
+    <p>Enterprise tolerance applied · Taylor and Wimpey flagged for manual review before escalation</p>
+    <div class="footer-accent"></div>
+  </div>
 </div>
 </body>
 </html>
